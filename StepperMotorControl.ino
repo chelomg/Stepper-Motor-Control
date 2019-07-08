@@ -10,11 +10,9 @@ const int stepPin = 3;
 const int dirPin = 4; 
 
 // speed
-int speed_int = 1;
-String speed_string = "";
-// distance
-int dis_int = 1;
-String dis_string = "";
+int motor_speed = 200;
+// axis
+int x_axis = 1;
 
 #define motorInterfaceType 1
 
@@ -30,27 +28,13 @@ void setup() {
 
 void loop() {
   if ( Serial.available() > 0 ) {
-    // useless
-    speed_string = Serial.readStringUntil('s');
-
-    // get speed string
-    speed_string = Serial.readStringUntil('d');
-    // get distance string
-    dis_string = Serial.readStringUntil('/n');
-    Serial.println("speed: "+speed_string+" mm/sec, distance: "+dis_string);
-    
-    // speed, string to int 
-    speed_int = speed_string.toInt();
-    speed_int = mmToStep(speed_int);
-    // distance, string to int 
-    dis_int = dis_string.toInt();
-    dis_int = mmToStep(dis_int);
-    
-    stepper.setCurrentPosition(0);
-    while(stepper.currentPosition() != dis_int)
-    {
-      stepper.setSpeed(speed_int);
-      stepper.runSpeed();
+    String str = Serial.readStringUntil('/n');
+    if(str[0] == 's'){
+      motor_speed = getSerialSpeed(str); 
+      Serial.println("set speed: "+String(motor_speed)+" mm/sec");
+    }else if(str[0] == 'd'){
+      x_axis = getSerialPosition(str);
+      runMotor(motor_speed, x_axis);
     }
   }
 }
@@ -58,6 +42,47 @@ void loop() {
 int mmToStep(int mm){
   int step = mm*5;
   return step;
+}
+
+void runMotor(int motor_speed, int x_axis){
+  Serial.println("using "+String(motor_speed)+" mm/sec to shift x: "+String(x_axis));
+  //stepper.setCurrentPosition(0);
+  
+  // mm/sec -> step/sec
+  int end_position = mmToStep(x_axis);
+  int motor_speed_per_steps = mmToStep(motor_speed);
+  
+  Serial.println(stepper.currentPosition());
+  if(end_position > stepper.currentPosition()){
+    motor_speed_per_steps = abs(motor_speed_per_steps);
+  }else{
+    motor_speed_per_steps = -1 * abs(motor_speed_per_steps);
+  }
+  
+  while(stepper.currentPosition() != end_position)
+  {
+    stepper.setSpeed(motor_speed_per_steps);
+    stepper.runSpeed();
+  }
+}
+
+int getSerialPosition(String str){
+  
+  String x_axis_s = str.substring(1, str.length()-1);
+  
+  // pos, string to int to steps
+  int x_axis_i = x_axis_s.toInt();
+  
+  return x_axis_i;
+}
+
+int getSerialSpeed(String str){
+  String speed_s = str.substring(1, str.length()-1);
+  
+  // speed, string to int to steps
+  int speed_i = speed_s.toInt();
+  
+  return speed_i;
 }
 
 // 200 steps -> 1 full cycle = 40 mm
