@@ -5,25 +5,37 @@
 #include <MultiStepper.h>
 #include <accelstepper.h>
 
-// defines pins numbers
+// stepper motor X pins
 const int stepPin = 3; 
 const int dirPin = 4; 
+
+// stepper motor Y pins
+const int yStepPin = 5;
+const int yDirPin = 6;
 
 // speed
 int motor_speed = 200;
 // axis
-int x_axis = 1;
+struct coordinate {
+  int x = 1;
+  int y = 1;
+};
 
 #define motorInterfaceType 1
 
-// Create a new instance of the AccelStepper class:
-AccelStepper stepper = AccelStepper(motorInterfaceType, stepPin, dirPin);
+// stepper motor X
+AccelStepper stepper_x = AccelStepper(motorInterfaceType, stepPin, dirPin);
+
+// stepper motor Y
+AccelStepper stepper_y = AccelStepper(motorInterfaceType, yStepPin, yDirPin);
 
 void setup() {
   
   Serial.begin(9600);
-  stepper.setMaxSpeed(1000);
-  stepper.setCurrentPosition(400);
+  stepper_x.setMaxSpeed(1000);
+  stepper_x.setCurrentPosition(0);
+  stepper_y.setMaxSpeed(1000);
+  stepper_y.setCurrentPosition(0);
 }
 
 void loop() {
@@ -33,8 +45,7 @@ void loop() {
       motor_speed = getSerialSpeed(str); 
       Serial.println("set speed: "+String(motor_speed)+" mm/sec");
     }else if(str[0] == 'd'){
-      x_axis = getSerialPosition(str);
-      runMotor(motor_speed, x_axis);
+      runMotor(motor_speed, getSerialPosition(str));
     }
   }
 }
@@ -44,36 +55,71 @@ int mmToStep(int mm){
   return step;
 }
 
-void runMotor(int motor_speed, int x_axis){
-  Serial.println("using "+String(motor_speed)+" mm/sec to shift x: "+String(x_axis));
-  //stepper.setCurrentPosition(0);
+void runMotor(int motor_speed, struct coordinate pos){
+  Serial.println("using "+String(motor_speed)+" mm/sec to shift x: "+String(pos.x)+" and y: "+String(pos.y));
   
+  // motor X
   // mm/sec -> step/sec
-  int end_position = mmToStep(x_axis);
-  int motor_speed_per_steps = mmToStep(motor_speed);
+  int x_end_position = mmToStep(pos.x);
+  int x_motor_speed_per_steps = mmToStep(motor_speed);
   
-  Serial.println(stepper.currentPosition());
-  if(end_position > stepper.currentPosition()){
-    motor_speed_per_steps = abs(motor_speed_per_steps);
+  if(x_end_position > stepper_x.currentPosition()){
+    x_motor_speed_per_steps = abs(x_motor_speed_per_steps);
   }else{
-    motor_speed_per_steps = -1 * abs(motor_speed_per_steps);
+    x_motor_speed_per_steps = -1 * abs(x_motor_speed_per_steps);
   }
   
-  while(stepper.currentPosition() != end_position)
-  {
-    stepper.setSpeed(motor_speed_per_steps);
-    stepper.runSpeed();
+  // motor Y
+  // mm/sec -> step/sec
+  int y_end_position = mmToStep(pos.y);
+  int y_motor_speed_per_steps = mmToStep(motor_speed);
+  
+  if(y_end_position > stepper_y.currentPosition()){
+    y_motor_speed_per_steps = abs(y_motor_speed_per_steps);
+  }else{
+    y_motor_speed_per_steps = -1 * abs(y_motor_speed_per_steps);
   }
+  
+  // Run
+  while(stepper_y.currentPosition() != y_end_position || stepper_x.currentPosition() != x_end_position)
+  {
+    if(stepper_x.currentPosition() != x_end_position){
+      stepper_x.setSpeed(x_motor_speed_per_steps);
+      stepper_x.runSpeed();
+    }
+    
+    if(stepper_y.currentPosition() != y_end_position){
+      stepper_y.setSpeed(y_motor_speed_per_steps);
+      stepper_y.runSpeed();
+    }
+  }
+  
+  Serial.println(stepper_x.currentPosition());
+  Serial.println(stepper_y.currentPosition());
 }
 
-int getSerialPosition(String str){
+struct coordinate getSerialPosition(String str){
+  int break_point = 0;
   
-  String x_axis_s = str.substring(1, str.length()-1);
+  for(int i = 0; i < str.length(); i++){
+    if(str[i] == ','){
+      break_point = i;
+      break;
+    }
+  }
   
+  String x_axis_s = str.substring(1, break_point);
+  Serial.println(x_axis_s);
+  String y_axis_s = str.substring(break_point + 1, str.length()-1);
   // pos, string to int to steps
   int x_axis_i = x_axis_s.toInt();
+  int y_axis_i = y_axis_s.toInt();
   
-  return x_axis_i;
+  struct coordinate pos;
+  pos.x = x_axis_i;
+  pos.y = y_axis_i;
+  
+  return pos;
 }
 
 int getSerialSpeed(String str){
