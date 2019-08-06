@@ -14,11 +14,11 @@ const int yStepPin = 5;
 const int yDirPin = 6;
 
 // speed
-int motor_speed = 200;
+float motor_speed = 70;
 // axis
 struct coordinate {
-  int x = 1;
-  int y = 1;
+  float x = 1;
+  float y = 1;
 };
 
 #define motorInterfaceType 1
@@ -50,8 +50,8 @@ void loop() {
   }
 }
 
-int mmToStep(int mm){
-  int step = mm*5;
+int mmToStep(float mm){
+  int step = mm*10;
   return step;
 }
 
@@ -60,8 +60,8 @@ void runMotor(int motor_speed, struct coordinate pos){
   
   // motor X
   // mm/sec -> step/sec
-  int x_end_position = mmToStep(pos.x);
-  int x_motor_speed_per_steps = mmToStep(motor_speed);
+  float x_end_position = mmToStep(pos.x);
+  float x_motor_speed_per_steps = mmToStep(motor_speed);
   
   if(x_end_position > stepper_x.currentPosition()){
     x_motor_speed_per_steps = abs(x_motor_speed_per_steps);
@@ -81,8 +81,9 @@ void runMotor(int motor_speed, struct coordinate pos){
   }
   
   // Run
+ 
   while(stepper_y.currentPosition() != y_end_position || stepper_x.currentPosition() != x_end_position)
-  {
+  { 
     if(stepper_x.currentPosition() != x_end_position){
       stepper_x.setSpeed(x_motor_speed_per_steps);
       stepper_x.runSpeed();
@@ -93,9 +94,6 @@ void runMotor(int motor_speed, struct coordinate pos){
       stepper_y.runSpeed();
     }
   }
-  
-  Serial.println(stepper_x.currentPosition());
-  Serial.println(stepper_y.currentPosition());
 }
 
 struct coordinate getSerialPosition(String str){
@@ -112,8 +110,8 @@ struct coordinate getSerialPosition(String str){
   Serial.println(x_axis_s);
   String y_axis_s = str.substring(break_point + 1, str.length()-1);
   // pos, string to int to steps
-  int x_axis_i = x_axis_s.toInt();
-  int y_axis_i = y_axis_s.toInt();
+  float x_axis_i = x_axis_s.toFloat();
+  float y_axis_i = y_axis_s.toFloat();
   
   struct coordinate pos;
   pos.x = x_axis_i;
@@ -122,14 +120,37 @@ struct coordinate getSerialPosition(String str){
   return pos;
 }
 
-int getSerialSpeed(String str){
+float getSerialSpeed(String str){
   String speed_s = str.substring(1, str.length()-1);
   
   // speed, string to int to steps
-  int speed_i = speed_s.toInt();
+  float speed_f = speed_s.toFloat();
   
-  return speed_i;
+  return speed_f;
 }
+
+struct coordinate adjustPosition(coordinate pos){
+  int x_i = floor(pos.x * 10);
+  int y_i = floor(pos.y * 10);
+
+  if((x_i & 0x01) != 0){
+    if(x_i != 0){
+      x_i += 1;
+      pos.x = x_i / 10.0;
+    }
+  }
+
+  if((y_i & 0x01) != 0){
+    if(y_i != 0){
+      y_i += 1;
+      pos.y = y_i / 10.0;
+    }  
+  }
+
+  return pos;
+}
+
+// 1/2 step mode
 
 // 200 steps -> 1 full cycle = 40 mm
 
