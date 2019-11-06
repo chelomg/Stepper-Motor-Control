@@ -36,9 +36,11 @@ void setup() {
   stepper_x.setCurrentPosition(0);
   stepper_y.setMaxSpeed(1000);
   stepper_y.setCurrentPosition(0);
+  motor_speed = getSerialSpeed("s300");
 }
 
 void loop() {
+  /*
   if ( Serial.available() > 0 ) {
     String str = Serial.readStringUntil('/n');
     if(str[0] == 's'){
@@ -47,7 +49,45 @@ void loop() {
     }else if(str[0] == 'd'){
       runMotor(motor_speed, getSerialPosition(str));
     }
-  }
+  }*/
+  
+  
+  
+  delay(4000);
+  // 1
+  runMotor(motor_speed, getSerialPosition("d0,10.0"));
+  delay(2000);
+  runMotor(motor_speed, getSerialPosition("d0,0"));
+  delay(4000);
+  // 2
+  runMotor(motor_speed, getSerialPosition("d0,10.0"));
+  delay(2000);
+  runMotor(motor_speed, getSerialPosition("d0,0"));
+  delay(4000);
+  // 3
+  runMotor(motor_speed, getSerialPosition("d,5.0"));
+  delay(2000);
+  runMotor(motor_speed, getSerialPosition("d0,0"));
+  
+  
+  /*
+  delay(4000);
+  // 1
+  runMotor(motor_speed, getSerialPosition("d0,10.0"));
+  delay(2000);
+  runMotor(motor_speed, getSerialPosition("d0,0"));
+  delay(4000);
+  // 2
+  runMotor(motor_speed, getSerialPosition("d0,10.0"));
+  delay(2000);
+  runMotor(motor_speed, getSerialPosition("d0,0"));
+  delay(4000);
+  // 3
+  runMotor(motor_speed, getSerialPosition("d-7.07,7.07"));
+  delay(2000);
+  runMotor(motor_speed, getSerialPosition("d0,0"));
+  */
+   
 }
 
 int mmToStep(float mm){
